@@ -1,4 +1,5 @@
 require "rails_helper"
+require "byebug"
 
 RSpec.describe "Posts", type: :request do
     
@@ -12,9 +13,8 @@ RSpec.describe "Posts", type: :request do
         end
 
         describe "With data from DB" do
+            let!(:posts) { create_list(:post, 10, published: true ) }
             before { get '/posts' }
-            let(:posts) { create_list(:post, 10, published: true ) }
-
             it "should return all published posts" do
                 payload = JSON.parse(response.body)
                 expect(payload.size).to eq(posts.size)
@@ -30,7 +30,7 @@ RSpec.describe "Posts", type: :request do
             get "/posts/#{post.id}"
             payload = JSON.parse(response.body)
             expect(payload).to_not be_empty
-            expect(payload["id"]).to_eq(post.id)
+            expect(payload["id"]).to eq(post.id)
             expect(response).to have_http_status(200)
         end
     end

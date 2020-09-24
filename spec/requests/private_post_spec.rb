@@ -4,7 +4,7 @@ RSpec.describe "Posts with authentication", type: :request do
   let!(:user) { create(:user) }  
   let!(:other_user) { create(:user) }  
   let!(:user_post) { create(:post, user_id: user.id) }  
-  let!(:other_user_post) { create(:post, user_id: other_user.id) }  
+  let!(:other_user_post) { create(:published_post, user_id: other_user.id) }  
   let!(:other_user_post_draft) { create(:post, user_id: other_user.id, published: false) }  
   let!(:auth_headers) { { 'Authorization' => "Bearer #{user.auth_token}" } }
   let!(:other_auth_headers) { { 'Authorization' => "Bearer #{other_user.auth_token}" } }
@@ -13,10 +13,10 @@ RSpec.describe "Posts with authentication", type: :request do
     context "with valid auth" do
       context "when requisiting other's author post" do
         context "when post is public" do
-          before { get "/post/#{other_user_post.id}", headers: auth_headers }
+          before { get "/posts/#{other_user_post.id}", headers: auth_headers }
 
           context "payload" do
-            subject { JSON.parse(response.body) }
+            subject { payload }
             it { is_expected.to include(:id) }
           end
           context "response" do
@@ -26,10 +26,10 @@ RSpec.describe "Posts with authentication", type: :request do
         end
 
         context " when post is a draft" do
-          before { get "/post/#{other_user_post_draft.id}", headers: auth_headers }
+          before { get "/posts/#{other_user_post_draft.id}", headers: auth_headers }
 
           context "payload" do
-            subject { JSON.parse(response.body) }
+            subject { payload }
             it { is_expected.to include(:error) }
           end
           context "response" do
@@ -47,5 +47,11 @@ RSpec.describe "Posts with authentication", type: :request do
 
   describe "PUT /posts" do
     
+  end
+
+  private
+
+  def payload
+    JSON.parse(response.body).with_indifferent_access
   end
 end

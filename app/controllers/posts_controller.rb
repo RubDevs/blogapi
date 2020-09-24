@@ -36,9 +36,13 @@ class PostsController < ApplicationController
 
     #PUT /posts/{id}
     def update
-        @post = Current.user.posts.find(params[:id])
-        @post.update!(update_params)
-        render json: @post, status: :ok
+        @post = Post.find(params[:id])
+        if (Current.user && @post.user_id == Current.user.id)
+            @post.update!(update_params)
+            render json: @post, status: :ok
+        else
+            render json: { error: "Unauthorized" }, status: :unauthorized
+        end
     end
 
     private 

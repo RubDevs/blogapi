@@ -9,6 +9,8 @@ RSpec.describe "Posts with authentication", type: :request do
   let!(:other_user_post_draft) { create(:post, user_id: other_user.id, published: false) }  
   let!(:auth_headers) { { 'Authorization' => "Bearer #{user.auth_token}" } }
   let!(:other_auth_headers) { { 'Authorization' => "Bearer #{other_user.auth_token}" } }
+  let!(:create_params) { {"post" => { "title" => "title", "content" => "content", "published" => :true, "user_id" => user.id }} }
+  let!(:update_params) { {"post" => { "title" => "title", "content" => "content", "published" => :true, "user_id" => user.id }} }
   
   describe "GET /posts/{id}" do
     context "with valid auth" do
@@ -45,39 +47,31 @@ RSpec.describe "Posts with authentication", type: :request do
   describe "POST /posts" do
     # con auth -> crear
     context "with valid auth" do
-      it "Should create a post" do
-        req_payload = {
-            post: {
-                title: "Titulo",
-                content: "Lorem ipsum",
-                published: false,
-                user_id: user.id
-            }
-        }
-        #POST http
-        post "/posts", params: req_payload, headers: auth_headers
-        expect(payload).to_not be_empty
-        expect(payload["id"]).to_not be_nil
-        expect(response).to have_http_status(:created)
+      before { post "/posts", params: create_params, headers: auth_headers }
+      
+      context "payload" do
+        subject { payload }
+        it { is_expected.to include(:id, :title, :content, :published, :author) }
+      end
+
+      context "response" do
+        subject { response }
+        it { is_expected.to have_http_status(:created) }
       end
     end
     
     # sin auth -> !crear -> 401
     context "with invalid auth" do
-      it "Should return unauthorized" do
-        req_payload = {
-            post: {
-                title: "Titulo",
-                content: "Lorem ipsum",
-                published: false,
-                user_id: user.id
-            }
-        }
-        #POST http
-        post "/posts", params: req_payload
-        expect(payload).to_not be_empty
-        expect(payload["error"]).to_not be_empty
-        expect(response).to have_http_status(:unauthorized)
+      before { post "/posts", params: create_params }
+      
+      context "payload" do
+        subject { payload }
+        it { is_expected.to include(:error) }
+      end
+
+      context "response" do
+        subject { response }
+        it { is_expected.to have_http_status(:unauthorized) }
       end
     end
   end
@@ -86,58 +80,37 @@ RSpec.describe "Posts with authentication", type: :request do
     # con auth ->
       # actualizar un post nuestro
       context "with valid auth" do
-        it "Should update a post" do
-          req_payload = {
-              post: {
-                  title: "Titulo",
-                  content: "Lorem ipsum",
-                  published: true,
-              }
-          }
-
-          #PUT http
-          put "/posts/#{user_post.id}", params: req_payload, headers: auth_headers
-          expect(payload).to_not be_empty
-          expect(payload["id"]).to_not be_nil
-          expect(response).to have_http_status(:ok)
-        end
+        context "updating users post" do
+          before { put "/posts/#{user_post.id}", params: update_params, headers: auth_headers }
+          context "payload" do
+            subject { payload }
+            it { is_expected.to include(:id, :title, :content, :published, :author) }
+            it { expect(payload[:id]).to eq(user_post.id) }
+          end
+    
+          context "response" do
+            subject { response }
+            it { is_expected.to have_http_status(:ok) }
+          end
+        end        
       end
       # !actualizar un post de otro -> 401
       context "with invalid auth" do
-        it "Should should return unauthorized" do
-          req_payload = {
-              post: {
-                  title: "Titulo",
-                  content: "Lorem ipsum",
-                  published: true,
-              }
-          }
+        context "when updating others post" do
+          before { put "/posts/#{other_user_post.id}", params: update_params, headers: auth_headers }
+      
+          context "payload" do
+            subject { payload }
+            it { is_expected.to include(:error) }
+          end
 
-          #PUT http
-          put "/posts/#{other_user_post.id}", params: req_payload, headers: auth_headers
-          expect(payload).to_not be_empty
-          expect(payload["error"]).to_not be_nil
-          expect(response).to have_http_status(:unauthorized)
+          context "response" do
+            subject { response }
+            it { is_expected.to have_http_status(:not_found) }
+          end
         end
       end
     # sin auth -> !actualizar -> 401
-    context "with invalid auth" do
-      it "Should should return unauthorized" do
-        req_payload = {
-            post: {
-                title: "Titulo",
-                content: "Lorem ipsum",
-                published: true,
-            }
-        }
-
-        #PUT http
-        put "/posts/#{other_user_post.id}", params: req_payload
-        expect(payload).to_not be_empty
-        expect(payload["error"]).to_not be_nil
-        expect(response).to have_http_status(:unauthorized)
-      end
-    end
   end
 
   private

@@ -87,6 +87,7 @@ GEM
     i18n (1.8.5)
       concurrent-ruby (~> 1.0)
     jsonapi-renderer (0.2.2)
+    jwt (2.1.0)
     launchy (2.5.0)
       addressable (~> 2.7)
     letter_opener (1.7.0)
@@ -196,6 +197,7 @@ DEPENDENCIES
   database_cleaner (~> 1.7)
   factory_bot_rails (~> 4.0)
   faker (~> 1.9)
+  jwt (~> 2.1.0)
   letter_opener
   listen (~> 3.2)
   puma (~> 4.1)

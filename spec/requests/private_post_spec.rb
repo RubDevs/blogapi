@@ -14,10 +14,10 @@ RSpec.describe "Posts with authentication", type: :request do
   
   describe "GET /posts/{id}" do
     context "with valid auth" do
-      context "when requisiting other's author post" do
+      before { allow(JsonWebToken).to receive(:verify).and_return([{email: user.email}]) }
+      context "when requisting other's author post" do
         context "when post is public" do
           before { get "/posts/#{other_user_post.id}", headers: auth_headers }
-
           context "payload" do
             subject { payload }
             it { is_expected.to include(:id) }
@@ -27,10 +27,8 @@ RSpec.describe "Posts with authentication", type: :request do
             it { is_expected.to have_http_status(:ok) }
           end
         end
-
-        context " when post is a draft" do
+        context "when post is draft" do
           before { get "/posts/#{other_user_post_draft.id}", headers: auth_headers }
-
           context "payload" do
             subject { payload }
             it { is_expected.to include(:error) }
@@ -41,77 +39,70 @@ RSpec.describe "Posts with authentication", type: :request do
           end
         end
       end
+      context "when requisting user's post" do
+      end
     end
   end
-
   describe "POST /posts" do
     # con auth -> crear
     context "with valid auth" do
+      before { allow(JsonWebToken).to receive(:verify).and_return([{email: user.email}]) }
       before { post "/posts", params: create_params, headers: auth_headers }
-      
+
       context "payload" do
         subject { payload }
         it { is_expected.to include(:id, :title, :content, :published, :author) }
       end
-
       context "response" do
         subject { response }
         it { is_expected.to have_http_status(:created) }
       end
     end
-    
     # sin auth -> !crear -> 401
-    context "with invalid auth" do
+    context "without auth" do
       before { post "/posts", params: create_params }
-      
       context "payload" do
         subject { payload }
         it { is_expected.to include(:error) }
       end
-
       context "response" do
         subject { response }
         it { is_expected.to have_http_status(:unauthorized) }
       end
     end
   end
-
   describe "PUT /posts" do
-    # con auth ->
+    # con auth -> 
       # actualizar un post nuestro
-      context "with valid auth" do
-        context "updating users post" do
-          before { put "/posts/#{user_post.id}", params: update_params, headers: auth_headers }
-          context "payload" do
-            subject { payload }
-            it { is_expected.to include(:id, :title, :content, :published, :author) }
-            it { expect(payload[:id]).to eq(user_post.id) }
-          end
-    
-          context "response" do
-            subject { response }
-            it { is_expected.to have_http_status(:ok) }
-          end
-        end        
-      end
       # !actualizar un post de otro -> 401
-      context "with invalid auth" do
-        context "when updating others post" do
-          before { put "/posts/#{other_user_post.id}", params: update_params, headers: auth_headers }
-      
-          context "payload" do
-            subject { payload }
-            it { is_expected.to include(:error) }
-          end
-
-          context "response" do
-            subject { response }
-            it { is_expected.to have_http_status(:not_found) }
-          end
+    context "with valid auth" do
+      before { allow(JsonWebToken).to receive(:verify).and_return([{email: user.email}]) }
+      context "when updating users's post" do
+        before { put "/posts/#{user_post.id}", params: update_params, headers: auth_headers }
+        context "payload" do
+          subject { payload }
+          it { is_expected.to include(:id, :title, :content, :published, :author) }
+          it { expect(payload[:id]).to eq(user_post.id) }
+        end
+        context "response" do
+          subject { response }
+          it { is_expected.to have_http_status(:ok) }
         end
       end
-    # sin auth -> !actualizar -> 401
+      context "when updating other users's post" do
+        before { put "/posts/#{other_user_post.id}", params: update_params, headers: auth_headers }
+        context "payload" do
+          subject { payload }
+          it { is_expected.to include(:error) }
+        end
+        context "response" do
+          subject { response }
+          it { is_expected.to have_http_status(:not_found) }
+        end
+      end
+    end
   end
+
 
   private
 

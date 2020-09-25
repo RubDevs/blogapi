@@ -5,6 +5,8 @@ class PostReportJob < ApplicationJob
     user = User.find(user_id)
     post = Post.find(post_id)
     report = PostReport.generate(post)
+
+    PostReportMailer.post_mail(user, post, report).deliver_now
     # Do something later
   end
 end
